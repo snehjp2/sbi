@@ -93,6 +93,12 @@ class DirectPosterior(NeuralPosterior):
         self._purpose = """It samples the posterior network and rejects samples that
             lie outside of the prior bounds."""
 
+    def embed_x(self, x: Tensor) -> Tensor:
+        """Return latent vector of ``x`` using the posterior's embedding network."""
+        if hasattr(self.posterior_estimator, "embed_condition"):
+            return self.posterior_estimator.embed_condition(x)
+        raise AttributeError("Posterior estimator has no embedding network")
+
     def to(self, device: Union[str, torch.device]) -> None:
         """Move posterior_estimator, prior and x_o to device.
 

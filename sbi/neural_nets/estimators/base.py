@@ -151,6 +151,24 @@ class ConditionalDensityEstimator(ConditionalEstimator):
         r"""Return the embedding network if it exists."""
         return None
 
+    def embed_condition(self, condition: Tensor) -> Tensor:
+        """Return latent representation from the embedding network.
+
+        If no embedding network is present, the input is returned unchanged.
+        """
+        if self.embedding_net is None:
+            return condition
+        return self.embedding_net(condition)
+
+    def forward_with_latent(self, input: Tensor, condition: Tensor):
+        """Return latent representation and model output for ``input``.
+
+        This utility can be overridden by subclasses to return quantities used
+        for custom losses, e.g. domain adaptation losses requiring access to the
+        embedding features alongside the density estimator output.
+        """
+        raise NotImplementedError
+
     @abstractmethod
     def log_prob(self, input: Tensor, condition: Tensor, **kwargs) -> Tensor:
         r"""Return the log probabilities of the inputs given a condition or multiple

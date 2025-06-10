@@ -109,6 +109,31 @@ class NFlowsFlow(ConditionalDensityEstimator):
         log_probs = self.net.log_prob(input, context=condition)
         return log_probs.reshape((input_sample_dim, input_batch_dim))
 
+    def forward_with_latent(
+        self, input: Tensor, condition: Tensor
+    ) -> Tuple[Tensor, Tensor]:
+        """Return embedding features and log prob of ``input``."""
+
+        input_sample_dim = input.shape[0]
+        input_batch_dim = input.shape[1]
+        condition_batch_dim = condition.shape[0]
+
+        assert condition_batch_dim == input_batch_dim, (
+            f"Batch shape of condition {condition_batch_dim} and input "
+            f"{input_batch_dim} do not match."
+        )
+
+        latent = self.embedding_net(condition)
+
+        # Nflows requires flattening over sample dimension
+        input_flat = input.reshape((input_batch_dim * input_sample_dim, -1))
+        ones_for_event_dims = (1,) * (condition.dim() - 1)
+        context = latent.repeat(input_sample_dim, *ones_for_event_dims)
+        log_probs = self.net.log_prob(input_flat, context=context)
+        log_probs = log_probs.reshape((input_sample_dim, input_batch_dim))
+
+        return latent, log_probs
+
     def loss(self, input: Tensor, condition: Tensor) -> Tensor:
         r"""Return the negative log-probability for training the density estimator.
 
