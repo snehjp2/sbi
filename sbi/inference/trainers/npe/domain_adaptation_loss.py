@@ -15,11 +15,19 @@ def make_sinkhorn_loss(trainer: "PosteriorEstimatorTrainer") -> Callable:
     outputs ``x`` where the first half corresponds to the source domain
     (paired with ``theta``) and the second half to the target domain. Only the
     source samples are used for the log-probability term.
+
+    Two trainable scaling factors ``eta_1`` and ``eta_2`` are instantiated and
+    automatically appended to the trainer's optimizer so that they are updated
+    during training. Both parameters are placed on the same device as the
+    trainer.
     """
 
     device = trainer._device
     eta_1 = nn.Parameter(torch.tensor(1.0, device=device))
     eta_2 = nn.Parameter(torch.tensor(1.0, device=device))
+
+    if hasattr(trainer, "optimizer") and trainer.optimizer is not None:
+        trainer.optimizer.add_param_group({"params": [eta_1, eta_2]})
     sinkhorn_fn: Callable[[Tensor, Tensor, float], Tensor]
 
     def custom_loss(
