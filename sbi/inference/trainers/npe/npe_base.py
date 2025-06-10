@@ -228,6 +228,7 @@ class PosteriorEstimatorTrainer(NeuralInference, ABC):
         retrain_from_scratch: bool = False,
         show_train_summary: bool = False,
         dataloader_kwargs: Optional[dict] = None,
+        custom_loss: Optional[Callable] = None,
     ) -> ConditionalDensityEstimator:
         r"""Return density estimator that approximates the distribution $p(\theta|x)$.
 
@@ -261,6 +262,8 @@ class PosteriorEstimatorTrainer(NeuralInference, ABC):
                 loss after the training.
             dataloader_kwargs: Additional or updated kwargs to be passed to the training
                 and validation dataloaders (like, e.g., a collate_fn)
+            custom_loss: Optional callable overriding the default loss function.
+                It must have the same signature as ``self._loss``.
 
         Returns:
             Density estimator that approximates the distribution $p(\theta|x)$.
@@ -360,7 +363,8 @@ class PosteriorEstimatorTrainer(NeuralInference, ABC):
                     batch[2].to(self._device),
                 )
 
-                train_losses = self._loss(
+                loss_fn = custom_loss or self._loss
+                train_losses = loss_fn(
                     theta_batch,
                     x_batch,
                     masks_batch,
@@ -397,7 +401,8 @@ class PosteriorEstimatorTrainer(NeuralInference, ABC):
                         batch[2].to(self._device),
                     )
                     # Take negative loss here to get validation log_prob.
-                    val_losses = self._loss(
+                    loss_fn = custom_loss or self._loss
+                    val_losses = loss_fn(
                         theta_batch,
                         x_batch,
                         masks_batch,

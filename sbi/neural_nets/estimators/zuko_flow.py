@@ -127,6 +127,30 @@ class ZukoFlow(ConditionalDensityEstimator):
 
         return log_probs
 
+    def forward_with_latent(
+        self, input: Tensor, condition: Tensor
+    ) -> Tuple[Tensor, Tensor]:
+        """Return embedding features and log prob of ``input``.
+
+        This exposes the latent vector obtained from the embedding network along
+        with the log probability of the normalizing flow. It can be used to
+        implement custom losses such as domain adaptation objectives.
+        """
+
+        input_batch_dim = input.shape[1]
+        condition_batch_dim = condition.shape[0]
+
+        assert condition_batch_dim == input_batch_dim, (
+            f"Batch shape of condition {condition_batch_dim} and input "
+            f"{input_batch_dim} do not match."
+        )
+
+        latent = self._embedding_net(condition)
+        dists = self.net(latent)
+        log_probs = dists.log_prob(input)
+
+        return latent, log_probs
+
     def loss(self, input: Tensor, condition: Tensor) -> Tensor:
         r"""Return the negative log-probability for training the conditional
         density estimator.
