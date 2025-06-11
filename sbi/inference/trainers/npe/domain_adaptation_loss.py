@@ -1,10 +1,10 @@
 from typing import Callable
 
 import torch
-from torch import Tensor, nn
 from geomloss import SamplesLoss
-from sbi.inference.trainers.npe.npe_base import PosteriorEstimatorTrainer
+from torch import Tensor, nn
 
+from sbi.inference.trainers.npe.npe_base import PosteriorEstimatorTrainer
 from sbi.neural_nets.estimators.shape_handling import reshape_to_batch_event
 
 
@@ -40,12 +40,25 @@ def make_sinkhorn_loss(trainer: "PosteriorEstimatorTrainer") -> Callable:
     ) -> Tensor:
         nonlocal sinkhorn_fn
 
+        if x.shape[0] != 2 * theta.shape[0]:
+            raise ValueError(
+                f"`x` must contain source and target samples "
+                f"(expected {2 * theta.shape[0]} rows, got {x.shape[0]})"
+            )
+        if masks.shape[0] != 2 * theta.shape[0]:
+            raise ValueError(
+                f"`masks` must match `x` shape "
+                f"(expected {2 * theta.shape[0]} rows, got {masks.shape[0]})"
+            )
+
         batch_size = theta.shape[0]
         source_x = x[:batch_size]
         target_x = x[batch_size:]
         masks = masks[:batch_size]
 
-        theta_b = reshape_to_batch_event(theta, event_shape=trainer._neural_net.input_shape)
+        theta_b = reshape_to_batch_event(
+            theta, event_shape=trainer._neural_net.input_shape
+        )
         source_x_b = reshape_to_batch_event(
             source_x, event_shape=trainer._neural_net.condition_shape
         )
@@ -78,4 +91,3 @@ def make_sinkhorn_loss(trainer: "PosteriorEstimatorTrainer") -> Callable:
         return calibration_kernel(source_x) * total
 
     return custom_loss
-
