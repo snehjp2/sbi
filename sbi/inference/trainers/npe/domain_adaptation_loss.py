@@ -16,11 +16,6 @@ def make_sinkhorn_loss(trainer: "PosteriorEstimatorTrainer") -> Callable:
     (paired with ``theta``) and the second half to the target domain. Only the
     source samples are used for the log-probability term.
 
-    Two trainable scaling factors ``eta_1`` and ``eta_2`` are instantiated and,
-    if ``trainer.optimizer`` already exists, appended to it so that they are
-    updated during training. If the optimizer is created later, the caller must
-    manually add ``eta_1`` and ``eta_2`` to the optimizer. Both parameters are
-    placed on the same device as the trainer.
     """
 
     device = trainer._device
@@ -40,6 +35,17 @@ def make_sinkhorn_loss(trainer: "PosteriorEstimatorTrainer") -> Callable:
         force_first_round_loss: bool = False,
     ) -> Tensor:
         nonlocal sinkhorn_fn
+
+        if x.shape[0] != 2 * theta.shape[0]:
+            raise ValueError(
+                f"`x` must contain source and target samples "
+                f"(expected {2 * theta.shape[0]} rows, got {x.shape[0]})"
+            )
+        if masks.shape[0] != 2 * theta.shape[0]:
+            raise ValueError(
+                f"`masks` must match `x` shape "
+                f"(expected {2 * theta.shape[0]} rows, got {masks.shape[0]})"
+            )
 
         batch_size = theta.shape[0]
         source_x = x[:batch_size]
@@ -65,20 +71,20 @@ def make_sinkhorn_loss(trainer: "PosteriorEstimatorTrainer") -> Callable:
             reshape_to_batch_event(target_x, trainer._neural_net.condition_shape)
         )
 
-        with torch.no_grad():
-            max_distance = torch.max(torch.cdist(src_feat, tgt_feat, p=2))
-            blur = max(0.05 * max_distance.item(), 0.01)
-            sinkhorn_fn = SamplesLoss("sinkhorn", blur=blur, scaling=0.9)
+        if True:
+            with torch.no_grad():
+                max_distance = torch.max(torch.cdist(src_feat, tgt_feat, p=2))
+                blur = max(0.05 * max_distance.item(), 0.01)
+                sinkhorn_fn = SamplesLoss("sinkhorn", blur=blur, scaling=0.9)
 
-        da_loss = sinkhorn_fn(src_feat, tgt_feat)
+            da_loss = sinkhorn_fn(src_feat, tgt_feat)
 
-        total = (
-            (1.0 / (2 * eta_1**2)) * base_loss
-            + (1.0 / (2 * eta_2**2)) * da_loss
-            + torch.log(torch.abs(eta_1) * torch.abs(eta_2))
-        )
+            total = (
+                (1.0 / (2 * eta_1**2)) * base_loss
+                + (1.0 / (2 * eta_2**2)) * da_loss
+                + torch.log(torch.abs(eta_1) * torch.abs(eta_2))
+            )
 
-        return calibration_kernel(source_x) * total
+            return calibration_kernel(source_x) * total
 
     return custom_loss
-
