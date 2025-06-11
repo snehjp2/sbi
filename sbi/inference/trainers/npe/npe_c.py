@@ -113,6 +113,7 @@ class NPE_C(PosteriorEstimatorTrainer):
         retrain_from_scratch: bool = False,
         show_train_summary: bool = False,
         dataloader_kwargs: Optional[Dict] = None,
+        custom_loss: Optional[Callable] = None,
     ) -> nn.Module:
         r"""Return density estimator that approximates the distribution $p(\theta|x)$.
 
@@ -151,6 +152,8 @@ class NPE_C(PosteriorEstimatorTrainer):
                 loss and leakage after the training.
             dataloader_kwargs: Additional or updated kwargs to be passed to the training
                 and validation dataloaders (like, e.g., a collate_fn)
+            custom_loss: Optional callable overriding the default loss function.
+                It must have the same signature as ``self._loss``.
 
         Returns:
             Density estimator that approximates the distribution $p(\theta|x)$.
