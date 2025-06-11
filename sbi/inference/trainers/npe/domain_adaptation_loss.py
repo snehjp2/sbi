@@ -16,20 +16,6 @@ def make_sinkhorn_loss(trainer: "PosteriorEstimatorTrainer") -> Callable:
     (paired with ``theta``) and the second half to the target domain. Only the
     source samples are used for the log-probability term.
 
-    When calling :func:`append_simulations`, ``theta`` must have the same length
-    as the concatenated ``x``. A single batch of parameters therefore has to be
-    duplicated prior to the call, for example:
-
-    ```python
-    x = torch.cat([x_source, x_target])
-    theta = torch.cat([theta, theta])
-    inference.append_simulations(theta, x)
-    ```
-
-    Two trainable scaling factors ``eta_1`` and ``eta_2`` are instantiated and
-    automatically appended to the trainer's optimizer so that they are updated
-    during training. Both parameters are placed on the same device as the
-    trainer.
     """
 
     device = trainer._device
