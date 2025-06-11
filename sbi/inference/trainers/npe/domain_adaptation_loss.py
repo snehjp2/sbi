@@ -62,20 +62,23 @@ def make_sinkhorn_loss(trainer: "PosteriorEstimatorTrainer") -> Callable:
             reshape_to_batch_event(target_x, trainer._neural_net.condition_shape)
         )
 
-        with torch.no_grad():
-            max_distance = torch.max(torch.cdist(src_feat, tgt_feat, p=2))
+    with torch.no_grad():
+        if src_feat.numel() == 0 or tgt_feat.numel() == 0:
+            blur = 0.01
+        else:
+            max_distance = torch.cdist(src_feat, tgt_feat, p=2).max()
             blur = max(0.05 * max_distance.item(), 0.01)
-            sinkhorn_fn = SamplesLoss("sinkhorn", blur=blur, scaling=0.9)
+        sinkhorn_fn = SamplesLoss("sinkhorn", blur=blur, scaling=0.9)
 
-        da_loss = sinkhorn_fn(src_feat, tgt_feat)
+    da_loss = sinkhorn_fn(src_feat, tgt_feat)
 
-        total = (
-            (1.0 / (2 * eta_1**2)) * base_loss
-            + (1.0 / (2 * eta_2**2)) * da_loss
-            + torch.log(torch.abs(eta_1) * torch.abs(eta_2))
-        )
+    total = (
+        (1.0 / (2 * eta_1**2)) * base_loss
+        + (1.0 / (2 * eta_2**2)) * da_loss
+        + torch.log(torch.abs(eta_1) * torch.abs(eta_2))
+    )
 
-        return calibration_kernel(source_x) * total
+    return calibration_kernel(source_x) * total
 
     return custom_loss
 
