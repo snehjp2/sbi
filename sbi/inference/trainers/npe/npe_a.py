@@ -120,6 +120,7 @@ class NPE_A(PosteriorEstimatorTrainer):
         retrain_from_scratch: bool = False,
         show_train_summary: bool = False,
         dataloader_kwargs: Optional[Dict] = None,
+        custom_loss: Optional[Callable] = None,
         component_perturbation: float = 5e-3,
     ) -> ConditionalDensityEstimator:
         r"""Return density estimator that approximates the proposal posterior.
@@ -161,6 +162,8 @@ class NPE_A(PosteriorEstimatorTrainer):
                 loss and leakage after the training.
             dataloader_kwargs: Additional or updated kwargs to be passed to the training
                 and validation dataloaders (like, e.g., a collate_fn)
+            custom_loss: Optional callable overriding the default loss function.
+                It must have the same signature as ``self._loss``.
             component_perturbation: The standard deviation applied to all weights and
                 biases when, in the last round, the Mixture of Gaussians is build from
                 a single Gaussian. This value can be problem-specific and also depends
