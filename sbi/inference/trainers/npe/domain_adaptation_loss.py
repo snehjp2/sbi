@@ -1,10 +1,10 @@
 from typing import Callable
 
 import torch
-from torch import Tensor, nn
 from geomloss import SamplesLoss
-from sbi.inference.trainers.npe.npe_base import PosteriorEstimatorTrainer
+from torch import Tensor, nn
 
+from sbi.inference.trainers.npe.npe_base import PosteriorEstimatorTrainer
 from sbi.neural_nets.estimators.shape_handling import reshape_to_batch_event
 
 
@@ -16,10 +16,11 @@ def make_sinkhorn_loss(trainer: "PosteriorEstimatorTrainer") -> Callable:
     (paired with ``theta``) and the second half to the target domain. Only the
     source samples are used for the log-probability term.
 
-    Two trainable scaling factors ``eta_1`` and ``eta_2`` are instantiated and
-    automatically appended to the trainer's optimizer so that they are updated
-    during training. Both parameters are placed on the same device as the
-    trainer.
+    Two trainable scaling factors ``eta_1`` and ``eta_2`` are instantiated and,
+    if ``trainer.optimizer`` already exists, appended to it so that they are
+    updated during training. If the optimizer is created later, the caller must
+    manually add ``eta_1`` and ``eta_2`` to the optimizer. Both parameters are
+    placed on the same device as the trainer.
     """
 
     device = trainer._device
@@ -45,7 +46,9 @@ def make_sinkhorn_loss(trainer: "PosteriorEstimatorTrainer") -> Callable:
         target_x = x[batch_size:]
         masks = masks[:batch_size]
 
-        theta_b = reshape_to_batch_event(theta, event_shape=trainer._neural_net.input_shape)
+        theta_b = reshape_to_batch_event(
+            theta, event_shape=trainer._neural_net.input_shape
+        )
         source_x_b = reshape_to_batch_event(
             source_x, event_shape=trainer._neural_net.condition_shape
         )
